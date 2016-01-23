@@ -2,13 +2,15 @@ import getopt
 import sys
 
 import numpy
+import pandas
 from sklearn import cross_validation
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import Imputer
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+
+from common import *
 
 
 def main(argv):
@@ -31,34 +33,28 @@ def main(argv):
             predict_column = arg
         elif opt == '-s':
             cross_validation_set = int(arg)
-    data = numpy.genfromtxt(data_file_name, delimiter=',')
-    new = Imputer().fit_transform(data).astype(int)
-    '''
-    fit_row_count = data.shape[0] / 2
-    predict_row_count = data.shape[0] - fit_row_count
-    ground_truth = data[:, 7]
-    fit_ground_truth = ground_truth[:fit_row_count]
-    predict_ground_truth = ground_truth[fit_row_count:]
-    features = numpy.delete(data, 7, 1)
-    fit_data = features[:fit_row_count, :]
-    predict_data = features[fit_row_count:, :]
-    '''
-
-    fit_row_count = new.shape[0] / 2
-    predict_row_count = new.shape[0] - fit_row_count
-    ground_truth = new[:, 7]
-    fit_ground_truth = ground_truth[:fit_row_count]
-    predict_ground_truth = ground_truth[fit_row_count:]
-    features = numpy.delete(new, 7, 1)
-    fit_data = features[:fit_row_count, :]
-    predict_data = features[fit_row_count:, :]
-
-    '''
-    names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree",
-             "Random Forest", "AdaBoost", "Naive Bayes", "LDA", "QDA"]
-    '''
-
-    names = ["Linear SVM", "RBF SVM", "AdaBoost", "Naive Bayes"]
+    log("DATA = " + data_file_name)
+    log("PREDICT_COLUMN = " + predict_column)
+    log("FOLDS = " + str(cross_validation_set))
+    log("Loading data...")
+    pd_data = pandas.read_csv(data_file_name, quotechar='"', sep=',').fillna(0)
+    log("Converting data...")
+    predict_data = None
+    fit_data = None
+    for column in pd_data.columns:
+        if pd_data[column].dtype == numpy.object:
+            column_data = pandas.Categorical.from_array(pd_data[column]).codes
+        else:
+            column_data = pd_data[column].values
+        if column == predict_column:
+            predict_data = column_data
+        else:
+            if fit_data is None:
+                fit_data = column_data[numpy.newaxis].T
+            else:
+                fit_data = numpy.append(fit_data, column_data[numpy.newaxis].T, 1)
+    log("Predicting...")
+    classifiers_names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree", "Random Forest", "AdaBoost", "Naive Bayes"]
     classifiers = [
         KNeighborsClassifier(3),
         SVC(kernel="linear", C=0.025),
@@ -67,17 +63,10 @@ def main(argv):
         RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
         AdaBoostClassifier(),
         GaussianNB()
-        # LDA()
-        # QDA()
     ]
-
-    for name, clf in zip(names, classifiers):
-        scores = cross_validation.cross_val_score(clf, features, ground_truth, cv=5)
+    for name, clf in zip(classifiers_names, classifiers):
+        scores = cross_validation.cross_val_score(clf, fit_data, predict_data, cv=cross_validation_set)
         print name, numpy.average(scores)
-        clf.fit(fit_data, fit_ground_truth)
-        predict_result = clf.predict(predict_data)
-        # hits = (predict_result == predict_ground_truth).sum()
-        # print name, ":", 100.0 * hits / len(predict_ground_truth), "%"
 
 
 if __name__ == "__main__":
