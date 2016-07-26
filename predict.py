@@ -16,7 +16,7 @@ from common import *
 
 def main(argv):
     usage = 'predict.py -f <data,e.g.,data.csv> -c <predict-column,e.g.,ABNORMALSTATE> -s <cross-validation,e.g.,10> -d <decomposition,e.g.,10>'
-    data_file_name = "history-flight-joined-nobom.csv"
+    data_file_name = "data.csv"
     predict_column = "ABNORMALSTATE"
     decomposition = 10
     cross_validation_set = 10
