@@ -15,9 +15,9 @@ from common import *
 
 
 def main(argv):
-    usage = 'predict.py -f <data,e.g.,data.csv> -c <predict-column,e.g.,ABNORMALSTATE> -s <cross-validation,e.g.,10> -d <decomposition,e.g.,10>'
+    usage = 'predict.py -f <data,e.g.,data.csv> -c <predict-column,e.g.,StartDelay> -s <cross-validation,e.g.,10> -d <decomposition,e.g.,10>'
     data_file_name = "data.csv"
-    predict_column = "ABNORMALSTATE"
+    predict_column = "StartDelay"
     decomposition = 10
     cross_validation_set = 10
     try:
@@ -39,6 +39,7 @@ def main(argv):
             decomposition = int(arg)
     log("DATA = " + data_file_name)
     log("PREDICT_COLUMN = " + predict_column)
+    log("DECOMPOSITION = " + str(decomposition))
     log("FOLDS = " + str(cross_validation_set))
     log("Loading data...")
     pd_data = pandas.read_csv(data_file_name, quotechar='"', sep=',').fillna(0)
@@ -58,22 +59,22 @@ def main(argv):
             else:
                 fit_data = numpy.append(fit_data, column_data[numpy.newaxis].T, 1)
     log("Constructing predictors...")
-    classifiers_names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree", "Random Forest", "AdaBoost", "Naive Bayes"]
+    classifiers_names = ["Nearest Neighbors", "Linear SVM", "Decision Tree", "Random Forest", "AdaBoost", "Naive Bayes"]
     classifiers = [
         KNeighborsClassifier(3),
         SVC(kernel="linear", C=0.025),
-        SVC(gamma=2, C=1),
         DecisionTreeClassifier(max_depth=5),
         RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
         AdaBoostClassifier(),
         GaussianNB()
     ]
     log("Decomposing...")
-    pca = PCA(n_components=decomposition)
-    dec_data = pca.fit_transform(fit_data)
+    pca = PCA(n_components=decomposition + 1)
+    fit_data = pca.fit_transform(fit_data)
+    fit_data = fit_data[:, 1:]
     log("Predicting...")
     for name, clf in zip(classifiers_names, classifiers):
-        scores = cross_validation.cross_val_score(clf, dec_data, predict_data, cv=cross_validation_set)
+        scores = cross_validation.cross_val_score(clf, fit_data, predict_data, cv=cross_validation_set)
         print name, numpy.average(scores)
 
 
