@@ -39,6 +39,7 @@ def main(argv):
             decomposition = int(arg)
     log("DATA = " + data_file_name)
     log("PREDICT_COLUMN = " + predict_column)
+    log("DECOMPOSITION = " + str(decomposition))
     log("FOLDS = " + str(cross_validation_set))
     log("Loading data...")
     pd_data = pandas.read_csv(data_file_name, quotechar='"', sep=',').fillna(0)
